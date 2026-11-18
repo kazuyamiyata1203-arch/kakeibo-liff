@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>現金の記録</title>
+  <!-- 丸みのある日本語フォント（Zen Maru Gothic。無料・SIL Open Font License） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app" id="app">
+    <!-- 女の子と吹き出し -->
+    <section class="stage">
+      <div class="frame" id="frame">
+        <img class="girl" id="girl" src="card_top.jpg" alt="">
+      </div>
+      <p class="bubble" id="bubble" role="status" aria-live="polite">…</p>
+    </section>
+
+    <!-- 入力の画面 -->
+    <section class="input" id="input" hidden>
+      <div class="items" id="items" role="radiogroup" aria-label="何に使ったか"></div>
+      <input class="name" id="name" type="text" maxlength="50" autocomplete="off" hidden>
+      <div class="amount" id="amount" aria-live="polite">0円</div>
+      <div class="keys" id="keys">
+        <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+        <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+        <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+        <button type="button" data-key="00">00</button><button type="button" data-key="0">0</button>
+        <button type="button" data-key="back" aria-label="1文字消す">←</button>
+      </div>
+      <button type="button" class="record" id="record" disabled>記録する</button>
+    </section>
+
+    <!-- 記録したあとの画面 -->
+    <section class="done" id="done" hidden>
+      <div class="receipt">
+        <div class="receipt-item" id="doneItem"></div>
+        <div class="receipt-amount" id="doneAmount"></div>
+        <div class="receipt-line" id="doneTotal"></div>
+        <div class="receipt-line budget" id="doneBudget"></div>
+      </div>
+      <button type="button" class="record" id="again">続けて記録する</button>
+      <button type="button" class="sub" id="close">LINEに戻る</button>
+    </section>
+  </main>
+
+  <!-- LIFF SDK（LINE 公式。最新の 2.x） -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- LIFF ID と記録の送り先（GAS の Webアプリの URL）。config.example.js をまねて作る -->
+  <script src="config.js"></script>
+  <script src="keypad.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
