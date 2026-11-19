@@ -1,209 +1,286 @@
-/* テンキー画面の見た目。色はボタンの板・カード（cards.gs）に合わせた紫・深緑・金 */
+/* テンキー画面の見た目。正本は line_cash_bot/design/keypad_design.dc.html（黒とグレー・金の枠）。
+   デザインは幅390px固定なので、ここでは幅を可変にし、スマホの幅 360〜430px で崩れないようにしている */
 :root {
-  --bg: #2a1740;          /* 紫の背景 */
-  --bg-deep: #1d0f2e;
-  --panel: #3d2459;
-  --purple-soft: #efe7f6;
-  --green: #1f5641;       /* 選んだ項目・記録するボタン */
-  --green-light: #2e7a5c;
-  --gold: #c9a227;        /* 金額・強調 */
-  --gold-light: #f2d675;
-  --cream: #fffbf2;
-  --text: #2b2238;
-  --on-dark: #f6efff;
-  --sub: #b9a8cc;
-  --red: #e57373;
-  --radius: 18px;
+  --gold: #c9a961;
+  --gold-light: #f1e3b8;
+  --gold-mid: #e6cf8e;
+  --gold-deep: #a8853f;
+  --text: #e8dcc0;
+  --text-sub: #cdbf9a;
+  --text-dim: #a99a76;
+  --ink: #14201b;            /* 金のボタンの文字 */
+  --cancelled: #a97a6a;
+  --line-soft: rgba(201, 169, 97, 0.25);
+  --jp: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+  --num: 'Quicksand', 'Helvetica Neue', Arial, sans-serif;
+  --side: 26px;              /* 左右の余白（金の枠の内側） */
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-html, body {
+html { background: #050506; }
+body {
   margin: 0;
-  min-height: 100%;
-  background: radial-gradient(120% 80% at 50% 0%, var(--panel) 0%, var(--bg) 55%, var(--bg-deep) 100%);
-  background-color: var(--bg);
-  color: var(--on-dark);
-  font-family: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
-  font-weight: 500;
-}
-
-.app {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   min-height: 100vh;
   min-height: 100dvh;
-}
-
-/* ---- 女の子と吹き出し ---- */
-.stage { position: relative; padding-bottom: 8px; }
-.frame {
-  height: 30vh;
-  min-height: 150px;
-  max-height: 240px;
-  border-radius: var(--radius);
-  overflow: hidden;
-  border: 2px solid var(--gold);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  background: var(--bg-deep);
-  animation: appear 0.7s ease-out both;          /* 開いたときにふわっと現れる */
-}
-.girl {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 32%;
-  transform: scale(1.06);                         /* 揺れても端が見えないよう、少しだけ大きく */
-  animation: float 4s ease-in-out 0.7s infinite;  /* 待っている間はゆっくり上下に揺れる */
-}
-.girl.hop { animation: hop 0.55s ease-out; }      /* 記録したら小さく跳ねる */
-
-.bubble {
-  position: relative;
-  margin: -26px 12px 0;
-  padding: 12px 16px;
-  background: var(--cream);
+  background: transparent;   /* 背景のグラデーション（.bg）が見えるように。外側の色は html の #050506 */
   color: var(--text);
-  border-radius: 16px;
-  border: 2px solid var(--gold);
-  font-size: 15px;
-  line-height: 1.55;
-  min-height: 3.2em;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: var(--jp);
+  font-weight: 500;
+  overflow-x: hidden;
 }
-.bubble::before {                                 /* 吹き出しのしっぽ（上向き） */
-  content: "";
-  position: absolute;
-  top: -11px;
-  left: 50%;
-  margin-left: -10px;
-  border: 10px solid transparent;
-  border-top: 0;
-  border-bottom-color: var(--gold);
-}
-.bubble.pop { animation: pop 0.32s ease-out; }    /* 押したら吹き出しがポンと弾む */
-.bubble.error { color: #8e1c1c; }
-
-/* ---- 項目（横一列） ---- */
-.items { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.items button {
-  font: inherit;
-  font-weight: 700;
-  font-size: 12px;
-  line-height: 1.25;
-  padding: 8px 2px 7px;
-  border-radius: 14px;
-  border: 1.5px solid rgba(201, 162, 39, 0.55);
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--on-dark);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  min-height: 58px;
-  word-break: keep-all;
-}
-.items button .icon { font-size: 22px; line-height: 1.1; }
-.items button[aria-checked="true"] {
-  background: var(--green);
-  border-color: var(--gold);
-  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.45) inset;
-}
-
-.name {
-  font: inherit;
-  font-size: 16px;                                /* 16px 未満だと iPhone が拡大してしまう */
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1.5px solid var(--gold);
-  background: var(--cream);
-  color: var(--text);
-  width: 100%;
-}
-
-/* ---- 金額（大きく金色） ---- */
-.amount {
-  text-align: right;
-  font-size: 44px;
-  font-weight: 900;
-  color: var(--gold-light);
-  letter-spacing: 0.02em;
-  padding: 4px 8px;
-  border-bottom: 2px solid rgba(201, 162, 39, 0.5);
-  text-shadow: 0 2px 8px rgba(201, 162, 39, 0.35);
-  font-variant-numeric: tabular-nums;
-}
-.amount.empty { color: rgba(242, 214, 117, 0.35); }
-
-/* ---- テンキー（3×4） ---- */
-.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.keys button {
-  font: inherit;
-  font-weight: 700;
-  font-size: 24px;
-  height: 54px;
-  border-radius: 14px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--on-dark);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
-}
-.keys button:active, .items button:active { transform: translateY(1px); background: rgba(255, 255, 255, 0.2); }
-
-/* ---- ボタン ---- */
-.record, .sub {
-  font: inherit;
-  font-weight: 900;
-  font-size: 19px;
-  width: 100%;
-  border-radius: 16px;
-  padding: 15px;
-  border: 2px solid var(--gold);
-}
-.record { background: var(--green); color: var(--cream); box-shadow: 0 4px 0 #123426; }
-.record:disabled { background: rgba(255, 255, 255, 0.08); color: var(--sub); border-color: rgba(201, 162, 39, 0.35); box-shadow: none; }
-.record:not(:disabled):active { transform: translateY(2px); box-shadow: 0 2px 0 #123426; }
-.sub { background: transparent; color: var(--gold-light); font-size: 16px; padding: 12px; }
-
-/* ---- 記録したあと ---- */
-.done { display: flex; flex-direction: column; gap: 12px; animation: appear 0.4s ease-out both; }
-.receipt {
-  background: var(--cream);
-  color: var(--text);
-  border-radius: var(--radius);
-  border: 2px solid var(--gold);
-  padding: 16px;
-  text-align: center;
-}
-.receipt-item { font-size: 16px; font-weight: 700; color: var(--green); }
-.receipt-amount { font-size: 38px; font-weight: 900; color: #8a6a00; margin: 2px 0 8px; }
-.receipt-line { font-size: 15px; padding-top: 6px; border-top: 1px dashed rgba(201, 162, 39, 0.6); margin-top: 6px; }
-.receipt-line:empty { display: none; }
-.receipt-line.budget { font-weight: 700; color: var(--green); }
-
+button { font-family: inherit; cursor: pointer; }
 [hidden] { display: none !important; }
 
-/* ---- 動き ---- */
-@keyframes appear { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@keyframes float { 0%, 100% { transform: scale(1.06) translateY(0); } 50% { transform: scale(1.06) translateY(-5px); } }
-@keyframes pop { 0% { transform: scale(0.94); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
-@keyframes hop { 0% { transform: scale(1.06) translateY(0); } 35% { transform: scale(1.06) translateY(-14px); }
-                 65% { transform: scale(1.06) translateY(0); } 82% { transform: scale(1.06) translateY(-4px); }
-                 100% { transform: scale(1.06) translateY(0); } }
-
-/* スマホの「視差効果を減らす」（動きを減らす）がオンなら動かさない */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+/* ---- 背景・金の二重枠（画面に固定） ---- */
+.bg {
+  position: fixed; inset: 0; z-index: -2;
+  background:
+    radial-gradient(90% 40% at 50% 24%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, #4a4a4e 0%, #2a2a2d 35%, #141416 70%, #050506 100%);
+}
+.breathe {   /* 背景の光がゆっくり明るくなったり暗くなったりする */
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(70% 35% at 50% 26%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 70%);
+  animation: breathe 8s ease-in-out infinite;
+}
+.frame-line { position: fixed; pointer-events: none; z-index: 5; }
+.frame-line.outer { inset: 10px; border: 1px solid rgba(201, 169, 97, 0.55); }
+.frame-line.inner { inset: 14px; border: 1px solid rgba(201, 169, 97, 0.2); }
+.glowframe {   /* 金の枠を光がひと回りする */
+  position: fixed; inset: 10px; padding: 1px; overflow: hidden; pointer-events: none; z-index: 5;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.glowframe > div {
+  position: absolute; left: 50%; top: 50%; width: 2000px; height: 2000px; margin: -1000px 0 0 -1000px;
+  background: conic-gradient(from 0deg, transparent 0 78%, rgba(241, 227, 184, 0) 80%, rgba(255, 244, 210, 1) 88%,
+                              rgba(241, 227, 184, 0) 94%, transparent 100%);
+  animation: spin 9s linear infinite;
 }
 
-/* 背の低い画面では女の子を小さく */
-@media (max-height: 640px) {
-  .frame { height: 22vh; min-height: 110px; }
-  .girl { object-position: 50% 48%; }            /* 顔が吹き出しに隠れないよう、少し下の部分を見せる */
-  .keys button { height: 46px; }
+/* ---- 押している間だけ金色に光る ---- */
+.k { transition: box-shadow 0.35s ease, border-color 0.35s ease, background 0.35s ease; }
+.k:active {
+  border-color: var(--gold-light) !important;
+  box-shadow: 0 0 18px rgba(230, 207, 142, 0.65), inset 0 0 12px rgba(230, 207, 142, 0.35) !important;
+  transition: box-shadow 0.05s, border-color 0.05s;
+}
+/* 光沢が流れる */
+.shine { position: relative; overflow: hidden; }
+.shine::after {
+  content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; pointer-events: none;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 250, 230, 0.55) 50%, rgba(255, 255, 255, 0) 100%);
+  animation: sheen 4s ease-in-out infinite;
+}
+
+/* ---- 全体 ---- */
+.app {
+  position: relative;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ---- 見出し ---- */
+.head {
+  padding: 26px var(--side) 0;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 8px;
+}
+.titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.title-fr { font-family: var(--num); font-style: italic; font-size: 13px; letter-spacing: 3px; color: var(--gold); }
+.title-jp { font-size: 19px; font-weight: 700; letter-spacing: 5px; color: var(--gold-light); white-space: nowrap; }
+.pill {
+  height: 32px; padding: 0 16px; border-radius: 14px; flex-shrink: 0;
+  border: 1px solid rgba(201, 169, 97, 0.6); background: transparent; color: var(--gold-mid);
+  font-size: 12px; letter-spacing: 3px;
+}
+
+.divider { margin: 14px var(--side) 0; display: flex; align-items: center; gap: 10px; }
+.divider .rule { flex: 1; height: 1px; }
+.divider .left { background: linear-gradient(90deg, transparent, var(--gold)); }
+.divider .right { background: linear-gradient(90deg, var(--gold), transparent); }
+.divider svg { flex-shrink: 0; }
+
+/* ---- 女の子とセリフ ---- */
+.stage { margin: 14px var(--side) 0; }
+.photo { padding: 3px; border: 1px solid var(--gold); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55); }
+.photo-in { height: 162px; overflow: hidden; border: 1px solid rgba(201, 169, 97, 0.4); background: #141416; }
+.photo-in video, .photo-in img {
+  width: 100%; height: 100%; display: block;
+  object-fit: cover;             /* 縦横比を保って枠いっぱいに */
+  object-position: 50% 55%;
+}
+.line {
+  margin: 12px 0 0; padding: 0 2px;
+  font-size: 13.5px; line-height: 1.7; letter-spacing: 0.5px; color: var(--text);
+  white-space: pre-line; min-height: 3.4em; text-align: center;
+}
+.line.error { color: #f0b8a8; }
+
+/* ---- 画面ごとの部分 ---- */
+.pane { flex: 1; display: flex; flex-direction: column; padding: 8px var(--side) 28px; gap: 12px; }
+.pane.done { padding-top: 12px; }
+.pane.history { padding-top: 6px; gap: 6px; }
+
+/* 項目（角ばった四角・ローマ数字付き。6個以上は折り返す。列の数は app.js が決める） */
+.items { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.item {
+  min-height: 54px; padding: 6px 2px; border-radius: 2px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; line-height: 1.25;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: transparent; color: var(--text-sub); border: 1px solid rgba(201, 169, 97, 0.35);
+  word-break: keep-all; overflow-wrap: anywhere; min-width: 0;
+}
+.item .roman { font-family: var(--num); font-size: 12px; color: var(--gold); line-height: 1; letter-spacing: 0; }
+.item[aria-checked="true"] {
+  background: linear-gradient(180deg, #38383c, #222225); color: var(--gold-light); border: 1px solid var(--gold);
+  box-shadow: inset 0 0 0 3px #222225, inset 0 0 0 4px rgba(201, 169, 97, 0.55);
+}
+
+.name {   /* 「その他」の品名（なくてもよい） */
+  font-family: inherit; font-size: 16px;   /* 16px 未満だと iPhone が拡大してしまう */
+  height: 40px; padding: 0 12px; width: 100%; border-radius: 2px;
+  border: 1px solid rgba(201, 169, 97, 0.45); background: rgba(5, 5, 6, 0.5); color: var(--gold-light);
+}
+.name::placeholder { color: var(--text-dim); }
+.name:focus { outline: none; border-color: var(--gold); }
+
+/* 金額 */
+.amount-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  padding: 2px 2px 8px; border-bottom: 1px solid rgba(201, 169, 97, 0.5);
+}
+.cat-label { font-size: 11px; letter-spacing: 2px; color: var(--text-dim); min-width: 0; overflow-wrap: anywhere; }
+.amount {
+  font-family: var(--num); font-size: 44px; font-weight: 700; color: var(--gold-light);
+  letter-spacing: 1px; line-height: 1; white-space: nowrap; flex-shrink: 0;
+}
+.amount.long { font-size: 36px; }      /* 6桁以上 */
+.amount.longer { font-size: 31px; }    /* 7桁 */
+
+/* テンキー（3×4） */
+.keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.key {
+  height: 48px; border-radius: 14px; border: 1px solid rgba(201, 169, 97, 0.45);
+  background: linear-gradient(180deg, #2a2a2d 0%, #1a1a1c 100%);
+  box-shadow: inset 0 1px 0 rgba(241, 227, 184, 0.08), 0 3px 8px rgba(0, 0, 0, 0.35);
+  color: var(--gold-light); font-family: var(--num); font-size: 25px; font-weight: 700;
+}
+
+/* 「記録する」：押せるときは金色・太さ900・光沢 */
+.submit {
+  min-height: 54px; border-radius: 14px; font-size: 16px; font-weight: 900; letter-spacing: 6px;
+  background: transparent; color: rgba(205, 191, 154, 0.45); border: 1px solid rgba(201, 169, 97, 0.25);
+}
+.submit.ready {
+  background: linear-gradient(180deg, #e6cf8e 0%, #c9a961 45%, #a8853f 100%); color: var(--ink);
+  border: 1px solid var(--gold-light); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* ---- 記録したあと ---- */
+.receipt { border: 1px solid var(--gold); padding: 22px 18px; text-align: center; background: rgba(5, 5, 6, 0.5); }
+.receipt-fr { font-family: var(--num); font-style: italic; font-size: 13px; letter-spacing: 3px; color: var(--gold); }
+.receipt-item { font-size: 14px; letter-spacing: 3px; color: var(--text); margin-top: 6px; overflow-wrap: anywhere; }
+.receipt-amount { font-family: var(--num); font-size: 46px; font-weight: 700; color: var(--gold-light); white-space: nowrap; }
+.receipt-rule { height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin: 10px 0; }
+.receipt-total { font-size: 13px; letter-spacing: 1px; color: var(--text-sub); }
+.receipt-budget { font-size: 13px; letter-spacing: 1px; color: var(--gold-mid); margin-top: 4px; }
+.receipt-budget:empty { display: none; }
+
+.gold {
+  border-radius: 14px; border: 1px solid var(--gold-light);
+  background: linear-gradient(180deg, #e6cf8e 0%, #c9a961 45%, #a8853f 100%); color: var(--ink);
+  font-size: 15px; letter-spacing: 4px;
+}
+.again { min-height: 52px; }
+.ghost {
+  min-height: 46px; border-radius: 14px; border: 1px solid rgba(201, 169, 97, 0.45);
+  background: transparent; color: var(--text-sub); font-size: 13px; letter-spacing: 3px;
+}
+.link {
+  min-height: 40px; border: none; background: transparent; color: var(--text-dim);
+  font-size: 13px; letter-spacing: 3px; text-decoration: underline; text-underline-offset: 4px;
+}
+button[aria-busy="true"] { opacity: 0.6; }
+
+/* ---- 履歴 ---- */
+.history-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  border-bottom: 1px solid var(--gold); padding-bottom: 6px;
+}
+.history-title { font-size: 15px; letter-spacing: 4px; color: var(--gold-light); }
+.history-month { font-family: var(--num); font-style: italic; font-size: 12px; color: var(--gold); }
+.history-list { display: flex; flex-direction: column; }
+.row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 12px 4px; border-bottom: 1px solid var(--line-soft); color: var(--text);
+}
+.row.cancelled { opacity: 0.5; text-decoration: line-through; }
+.row-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.row-when { font-family: var(--num); font-size: 13px; color: var(--text-dim); letter-spacing: 1px; }
+.row-what { font-size: 14px; letter-spacing: 1px; overflow-wrap: anywhere; }
+.row-amount { font-family: var(--num); font-size: 18px; color: var(--gold-light); white-space: nowrap; }
+.row-cancel {
+  height: 32px; padding: 0 12px; border-radius: 14px; flex-shrink: 0;
+  border: 1px solid rgba(201, 169, 97, 0.45); background: transparent; color: var(--text-sub);
+  font-size: 12px; letter-spacing: 2px;
+}
+.row-done { font-size: 12px; letter-spacing: 2px; color: var(--cancelled); flex-shrink: 0; }
+.history-note { padding: 18px 4px; font-size: 13px; letter-spacing: 1px; color: var(--text-dim); text-align: center; }
+
+.confirm {   /* 確認は画面の下に貼り付けて、履歴が長くても見えるように */
+  position: sticky; bottom: calc(18px + env(safe-area-inset-bottom)); margin-top: 8px;
+  border: 1px solid var(--gold); padding: 16px; display: flex; flex-direction: column; gap: 12px; background: #1a1a1c;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+}
+.confirm-text { font-size: 13.5px; letter-spacing: 1px; line-height: 1.6; text-align: center; overflow-wrap: anywhere; }
+.confirm-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.confirm-buttons button { min-height: 44px; font-size: 14px; letter-spacing: 3px; }
+
+/* ---- 動き ---- */
+@keyframes breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes sheen { 0% { left: -60%; } 55%, 100% { left: 130%; } }
+
+/* スマホの「視差効果を減らす」（動きを減らす）がオンなら動かさない（動画は app.js が止めて静止画にする） */
+@media (prefers-reduced-motion: reduce) {
+  .mv, .glowframe > div, .shine::after { animation: none !important; }
+  .k { transition: none !important; }
+}
+
+/* 幅の狭いスマホ（360px 前後） */
+@media (max-width: 370px) {
+  :root { --side: 22px; }
+  .title-jp { letter-spacing: 4px; }
+  .item { letter-spacing: 0; }
+  .submit { letter-spacing: 4px; }
+}
+
+/* 背の低い画面（LINE の見出しを除いた高さが低いとき）は、女の子とキーを少し小さく */
+@media (max-height: 740px) {
+  .head { padding-top: 22px; }
+  .divider, .stage { margin-top: 10px; }
+  .photo-in { height: 128px; }
+  .line { margin-top: 8px; }
+  .pane { gap: 10px; padding-bottom: 22px; }
+  .key { height: 44px; }
+  .keys { gap: 8px; }
+  .amount { font-size: 40px; }
+  .submit { min-height: 50px; }
+}
+@media (max-height: 680px) {   /* iPhone SE などで LINE の見出しを除くと 600px 前後 */
+  .head { padding-top: 18px; }
+  .divider, .stage { margin-top: 8px; }
+  .photo-in { height: 96px; }
+  .line { margin-top: 6px; line-height: 1.55; }
+  .pane { gap: 8px; padding-top: 4px; }
+  .key { height: 40px; font-size: 23px; }
+  .item { min-height: 48px; }
   .amount { font-size: 36px; }
+  .submit { min-height: 46px; }
 }

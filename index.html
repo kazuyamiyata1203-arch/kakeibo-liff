@@ -4,48 +4,95 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
-  <title>現金の記録</title>
-  <!-- 丸みのある日本語フォント（Zen Maru Gothic。無料・SIL Open Font License） -->
+  <meta name="theme-color" content="#2a2a2d">
+  <title>現金出納帳</title>
+  <!-- フォント（Google Fonts。無料）：日本語は Zen Maru Gothic、数字・欧文は Quicksand -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Quicksand:wght@700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="app" id="app">
-    <!-- 女の子と吹き出し -->
-    <section class="stage">
-      <div class="frame" id="frame">
-        <img class="girl" id="girl" src="card_top.jpg" alt="">
+  <!-- 背景と金の二重枠（画面に固定。押せない飾り） -->
+  <div class="bg" aria-hidden="true"></div>
+  <div class="mv breathe" aria-hidden="true"></div>
+  <div class="frame-line outer" aria-hidden="true"></div>
+  <div class="glowframe" aria-hidden="true"><div></div></div>
+  <div class="frame-line inner" aria-hidden="true"></div>
+
+  <main class="app">
+    <header class="head">
+      <div class="titles">
+        <div class="title-fr">Livre de caisse</div>
+        <div class="title-jp">現金出納帳</div>
       </div>
-      <p class="bubble" id="bubble" role="status" aria-live="polite">…</p>
+      <button type="button" class="pill" id="historyBtn" hidden>履歴</button>
+    </header>
+
+    <div class="divider" aria-hidden="true">
+      <div class="rule left"></div>
+      <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 0 L9 5 L14 7 L9 9 L7 14 L5 9 L0 7 L5 5 Z" fill="#c9a961"/></svg>
+      <div class="rule right"></div>
+    </div>
+
+    <!-- 女の子（ループ動画。止まるときは静止画）とセリフ -->
+    <section class="stage">
+      <div class="photo">
+        <div class="photo-in">
+          <video id="video" src="diary_loop.mp4" autoplay muted loop playsinline preload="auto" poster="card_top.jpg" aria-hidden="true"></video>
+          <img id="still" src="card_top.jpg" alt="" hidden>
+        </div>
+      </div>
+      <p class="line" id="bubble" role="status" aria-live="polite">…</p>
     </section>
 
     <!-- 入力の画面 -->
-    <section class="input" id="input" hidden>
+    <section class="pane input" id="input" hidden>
       <div class="items" id="items" role="radiogroup" aria-label="何に使ったか"></div>
       <input class="name" id="name" type="text" maxlength="50" autocomplete="off" hidden>
-      <div class="amount" id="amount" aria-live="polite">0円</div>
-      <div class="keys" id="keys">
-        <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
-        <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
-        <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
-        <button type="button" data-key="00">00</button><button type="button" data-key="0">0</button>
-        <button type="button" data-key="back" aria-label="1文字消す">←</button>
+      <div class="amount-row">
+        <div class="cat-label" id="catLabel">項目を選んでください</div>
+        <div class="amount" id="amount">¥ 0</div>
       </div>
-      <button type="button" class="record" id="record" disabled>記録する</button>
+      <div class="keys" id="keys">
+        <button type="button" class="k key" data-key="1">1</button><button type="button" class="k key" data-key="2">2</button><button type="button" class="k key" data-key="3">3</button>
+        <button type="button" class="k key" data-key="4">4</button><button type="button" class="k key" data-key="5">5</button><button type="button" class="k key" data-key="6">6</button>
+        <button type="button" class="k key" data-key="7">7</button><button type="button" class="k key" data-key="8">8</button><button type="button" class="k key" data-key="9">9</button>
+        <button type="button" class="k key" data-key="00">00</button><button type="button" class="k key" data-key="0">0</button>
+        <button type="button" class="k key" data-key="back" aria-label="1文字消す">←</button>
+      </div>
+      <button type="button" class="k submit" id="record" aria-disabled="true">項目を選んでください</button>
     </section>
 
     <!-- 記録したあとの画面 -->
-    <section class="done" id="done" hidden>
+    <section class="pane done" id="done" hidden>
       <div class="receipt">
+        <div class="receipt-fr">Enregistré</div>
         <div class="receipt-item" id="doneItem"></div>
         <div class="receipt-amount" id="doneAmount"></div>
-        <div class="receipt-line" id="doneTotal"></div>
-        <div class="receipt-line budget" id="doneBudget"></div>
+        <div class="receipt-rule"></div>
+        <div class="receipt-total" id="doneTotal"></div>
+        <div class="receipt-budget" id="doneBudget"></div>
       </div>
-      <button type="button" class="record" id="again">続けて記録する</button>
-      <button type="button" class="sub" id="close">LINEに戻る</button>
+      <button type="button" class="k gold shine again" id="again">続けて記録する</button>
+      <button type="button" class="ghost undo" id="undo">今の記録を取り消す</button>
+      <button type="button" class="link" id="close">LINEに戻る</button>
+    </section>
+
+    <!-- 履歴（今月の自分の記録） -->
+    <section class="pane history" id="history" hidden>
+      <div class="history-head">
+        <div class="history-title">今月の記録</div>
+        <div class="history-month" id="historyMonth"></div>
+      </div>
+      <div class="history-list" id="historyList"></div>
+      <div class="confirm" id="confirm" hidden>
+        <div class="confirm-text" id="confirmText"></div>
+        <div class="confirm-buttons">
+          <button type="button" class="ghost" id="confirmNo">やめる</button>
+          <button type="button" class="gold" id="confirmYes">取り消す</button>
+        </div>
+      </div>
     </section>
   </main>
 

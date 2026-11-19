@@ -1,7 +1,8 @@
 /**
- * テンキー画面（LIFF）の動き。セリフ・項目は開いたときに GAS（messages.gs・liff.gs）から受け取る。
+ * テンキー画面（LIFF）の動き。画面の流れは 入力 → 完了 → 履歴（デザイン：line_cash_bot/design/keypad_design.dc.html）。
+ * セリフ・項目は開いたときに GAS（messages.gs・liff.gs）から受け取る。
  * ・ユーザーIDは送らない。LIFF の IDトークン（liff.getIDToken）を送り、GAS が LINE の検証 API で確かめる
- * ・チャットには何も送らない。記録の確認はこの画面の中だけ
+ * ・チャットには何も送らない。記録・取り消しの確認はこの画面の中だけ
  * ・GAS とつながる前のエラー（設定がない・LINE の外で開いた など）だけは、ここに書いた文を出す
  */
 (function () {
@@ -10,32 +11,52 @@
   var config = window.KAKEIBO_LIFF_CONFIG || {};
   // GAS とつながる前に出す文（それ以外のセリフはすべて GAS の messages.gs から受け取る）
   var EARLY = {
-    NO_CONFIG: '準備中ですわ（config.js に LIFF ID と送り先をお書きになって）',
-    CONNECT: 'あら、つながりませんでしたわ。電波の良いところで開き直してくださいな',
+    NO_CONFIG: '準備中ですわ\n（config.js に LIFF ID と送り先をお書きになって）',
+    CONNECT: 'あら、つながりませんでしたわ。\n電波の良いところで開き直してくださいな',
   };
+  // ボタンの言葉（デザインのとおり）
+  var LABEL = { RECORD: '記録する', NEED_ITEM: '項目を選んでください', NEED_AMOUNT: '金額を入れてください',
+                SENDING: '記録しています', HISTORY: '履歴', BACK: 'もどる' };
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {
-    bubble: $('bubble'), girl: $('girl'), input: $('input'), items: $('items'), name: $('name'), amount: $('amount'),
-    keys: $('keys'), record: $('record'), done: $('done'), doneItem: $('doneItem'), doneAmount: $('doneAmount'),
-    doneTotal: $('doneTotal'), doneBudget: $('doneBudget'), again: $('again'), close: $('close'),
+    bubble: $('bubble'), video: $('video'), still: $('still'), historyBtn: $('historyBtn'),
+    input: $('input'), items: $('items'), name: $('name'), catLabel: $('catLabel'), amount: $('amount'),
+    keys: $('keys'), record: $('record'),
+    done: $('done'), doneItem: $('doneItem'), doneAmount: $('doneAmount'), doneTotal: $('doneTotal'),
+    doneBudget: $('doneBudget'), again: $('again'), undo: $('undo'), close: $('close'),
+    history: $('history'), historyMonth: $('historyMonth'), historyList: $('historyList'),
+    confirm: $('confirm'), confirmText: $('confirmText'), confirmNo: $('confirmNo'), confirmYes: $('confirmYes'),
   };
-  var state = { data: null, item: '', digits: '', sending: false, requestId: '' };
+  var state = {
+    data: null, mode: 'input', before: 'input', item: '', digits: '', sending: false, requestId: '',
+    last: null,          // 今の記録（完了の画面で取り消せる）{ id, item, digits }
+    records: [],         // 履歴
+    confirming: null,    // 取り消しを確かめている記録
+  };
 
-  // ---- 吹き出し・女の子の動き ----
+  // ---- 女の子の動画：再生できない（低電力モードなど）・動きを減らす設定なら、止めて静止画（エラーは出さない） ----
+  function showStill() {
+    try { el.video.pause(); } catch (e) { /* 止められなくても静止画を出す */ }
+    el.video.hidden = true;
+    el.still.hidden = false;
+  }
+  (function setupVideo() {
+    var reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    if (reduce && reduce.matches) { showStill(); return; }
+    el.video.addEventListener('error', showStill);
+    try {
+      var p = el.video.play();
+      if (p && typeof p.catch === 'function') p.catch(showStill);
+    } catch (e) { showStill(); }
+    if (reduce && reduce.addEventListener) reduce.addEventListener('change', function (e) { if (e.matches) showStill(); });
+  })();
+
+  // ---- セリフ ----
   function say(text, isError) {
     el.bubble.textContent = text || '…';
     el.bubble.classList.toggle('error', !!isError);
-    el.bubble.classList.remove('pop');
-    void el.bubble.offsetWidth;            // 同じ動きをもう一度始めるため
-    el.bubble.classList.add('pop');
   }
-  function hop() {
-    el.girl.classList.remove('hop');
-    void el.girl.offsetWidth;
-    el.girl.classList.add('hop');
-  }
-  el.girl.addEventListener('animationend', function (e) { if (e.animationName === 'hop') el.girl.classList.remove('hop'); });
 
   // ---- GAS とのやり取り ----
   function call(body) {
@@ -45,21 +66,34 @@
       .then(function (res) { return res.json(); });
   }
 
-  // ---- 画面を作る ----
+  // ---- 画面の切り替え ----
+  function show(mode) {
+    state.mode = mode;
+    el.input.hidden = mode !== 'input';
+    el.done.hidden = mode !== 'done';
+    el.history.hidden = mode !== 'history';
+    el.historyBtn.textContent = mode === 'history' ? LABEL.BACK : LABEL.HISTORY;
+    window.scrollTo(0, 0);
+  }
+
+  // ---- 入力の画面 ----
   function renderItems(items) {
     el.items.textContent = '';
-    items.forEach(function (it) {
+    el.items.style.gridTemplateColumns = 'repeat(' + K.itemColumns(items.length) + ', minmax(0, 1fr))';
+    items.forEach(function (it, i) {
       var b = document.createElement('button');
       b.type = 'button';
+      b.className = 'k item';
       b.setAttribute('role', 'radio');
       b.setAttribute('aria-checked', 'false');
       b.dataset.item = it.name;
-      var icon = document.createElement('span');
-      icon.className = 'icon';
-      icon.textContent = it.icon;
+      var no = document.createElement('span');
+      no.className = 'roman';
+      no.textContent = K.roman(i + 1);
+      no.setAttribute('aria-hidden', 'true');
       var label = document.createElement('span');
       label.textContent = it.name;
-      b.appendChild(icon);
+      b.appendChild(no);
       b.appendChild(label);
       b.addEventListener('click', function () { chooseItem(it); });
       el.items.appendChild(b);
@@ -74,8 +108,13 @@
     var other = it.name === state.data.other;   // 「その他」だけ品名の欄を出す
     el.name.hidden = !other;
     if (!other) el.name.value = '';
-    say(state.digits ? K.amountLine(state.data.texts, state.digits, state.data.bigAmount) || it.ask : it.ask);
+    say(K.amountLine(state.data.texts, state.digits, state.data.bigAmount) || it.ask);
     update();
+  }
+
+  function currentAsk() {
+    var it = state.data.items.filter(function (x) { return x.name === state.item; })[0];
+    return it ? it.ask : state.data.texts.LIFF_OPEN;
   }
 
   function pressKey(key) {
@@ -85,26 +124,29 @@
       return;
     }
     state.digits = next;
-    var line = K.amountLine(state.data.texts, state.digits, state.data.bigAmount);
-    if (line) say(line);
-    else if (state.item) say(currentAsk());
-    else say(state.data.texts.LIFF_OPEN);
+    say(K.amountLine(state.data.texts, state.digits, state.data.bigAmount) || (state.item ? currentAsk() : state.data.texts.LIFF_OPEN));
     update();
   }
 
-  function currentAsk() {
-    var it = state.data.items.filter(function (x) { return x.name === state.item; })[0];
-    return it ? it.ask : state.data.texts.LIFF_OPEN;
+  function ready() {
+    return K.canRecord(state.item, state.digits, state.data.minAmount, state.data.maxAmount);
   }
 
   function update() {
-    el.amount.textContent = K.yen(state.digits);
-    el.amount.classList.toggle('empty', !state.digits);
-    el.record.disabled = state.sending || !K.canRecord(state.item, state.digits, state.data.minAmount, state.data.maxAmount);
+    el.amount.textContent = '¥ ' + K.num(state.digits);
+    el.amount.classList.remove('long', 'longer');
+    var size = K.amountSize(state.digits);
+    if (size) el.amount.classList.add(size);
+    el.catLabel.textContent = state.item || LABEL.NEED_ITEM;
+    var ok = ready() && !state.sending;
+    el.record.classList.toggle('ready', ok);
+    el.record.classList.toggle('shine', ok);       // 押せるときだけ光沢が流れる
+    el.record.setAttribute('aria-disabled', ok ? 'false' : 'true');
+    el.record.textContent = state.sending ? LABEL.SENDING : ready() ? LABEL.RECORD : state.item ? LABEL.NEED_AMOUNT : LABEL.NEED_ITEM;
   }
 
   function record() {
-    if (el.record.disabled) return;
+    if (state.sending || !ready()) return;
     state.sending = true;
     if (!state.requestId) state.requestId = K.requestId();   // やり直しのときは同じ名前（GAS が二重に記録しない）
     update();
@@ -127,36 +169,166 @@
       });
   }
 
+  // ---- 完了の画面 ----
   function showDone(r) {
+    state.last = { id: r.id, item: r.item, digits: state.digits };
     el.doneItem.textContent = r.item;
-    el.doneAmount.textContent = r.amount;
+    el.doneAmount.textContent = '¥ ' + K.num(state.digits);
     el.doneTotal.textContent = r.monthTotal || '';
-    el.doneBudget.textContent = r.budget || '';
-    el.input.hidden = true;
-    el.done.hidden = false;
+    el.doneBudget.textContent = r.budget || '';     // 予算のないカテゴリなら空（行ごと出さない）
+    el.undo.disabled = false;
+    show('done');
     say(r.message);
-    hop();
   }
 
-  function reset() {
+  function reset(line) {
     state.item = '';
     state.digits = '';
+    state.requestId = '';
     el.name.value = '';
     el.name.hidden = true;
     Array.prototype.forEach.call(el.items.children, function (b) { b.setAttribute('aria-checked', 'false'); });
-    el.done.hidden = true;
-    el.input.hidden = false;
-    say(state.data.texts.LIFF_OPEN);
+    show('input');
+    say(line || state.data.texts.LIFF_OPEN);
     update();
   }
 
+  /** 完了の画面の「今の記録を取り消す」：いま記録した1件を取り消して、入力の画面に戻る。 */
+  function undoLast() {
+    if (!state.last || el.undo.getAttribute('aria-busy') === 'true') return;
+    busy(el.undo, true);
+    call({ action: 'liff_cancel', id: state.last.id })
+      .then(function (r) {
+        busy(el.undo, false);
+        if (r && (r.ok || r.error === 'already')) {
+          state.last = null;
+          reset(state.data.texts.LIFF_UNDONE);
+          return;
+        }
+        say((r && r.message) || state.data.texts.LIFF_FAILED, true);
+      })
+      .catch(function () { busy(el.undo, false); say(state.data.texts.LIFF_FAILED, true); });
+  }
+
+  function busy(button, on) {
+    button.setAttribute('aria-busy', on ? 'true' : 'false');
+  }
+
+  // ---- 履歴 ----
+  function openHistory() {
+    state.before = state.mode;
+    state.confirming = null;
+    el.confirm.hidden = true;
+    el.historyMonth.textContent = '';
+    note('…');
+    show('history');
+    say(state.data.texts.LIFF_HISTORY);
+    call({ action: 'liff_history' })
+      .then(function (r) {
+        if (state.mode !== 'history') return;
+        if (!r || !r.ok) { note(''); say((r && r.message) || state.data.texts.LIFF_FAILED, true); return; }
+        state.records = r.records || [];
+        el.historyMonth.textContent = K.monthName(r.month);
+        renderHistory();
+      })
+      .catch(function () { note(''); say(state.data.texts.LIFF_FAILED, true); });
+  }
+
+  function closeHistory() {
+    state.confirming = null;
+    el.confirm.hidden = true;
+    if (state.before === 'done' && state.last) { show('done'); say(state.data.texts.LIFF_RECORDED); return; }
+    if (state.before === 'done') { reset(); return; }
+    show('input');
+    say(K.amountLine(state.data.texts, state.digits, state.data.bigAmount) || (state.item ? currentAsk() : state.data.texts.LIFF_OPEN));
+    update();
+  }
+
+  function note(text) {
+    el.historyList.textContent = '';
+    if (!text) return;
+    var d = document.createElement('div');
+    d.className = 'history-note';
+    d.textContent = text;
+    el.historyList.appendChild(d);
+  }
+
+  function renderHistory() {
+    if (!state.records.length) { note(state.data.texts.LIFF_HISTORY_EMPTY); return; }
+    el.historyList.textContent = '';
+    state.records.forEach(function (h) {
+      var row = document.createElement('div');
+      row.className = 'row' + (h.cancelled ? ' cancelled' : '');
+      var main = document.createElement('div');
+      main.className = 'row-main';
+      var when = document.createElement('div');
+      when.className = 'row-when';
+      when.textContent = h.when;
+      var what = document.createElement('div');
+      what.className = 'row-what';
+      what.appendChild(document.createTextNode(h.item + '　'));
+      var amt = document.createElement('span');
+      amt.className = 'row-amount';
+      amt.textContent = '¥ ' + K.num(h.amount);
+      what.appendChild(amt);
+      main.appendChild(when);
+      main.appendChild(what);
+      row.appendChild(main);
+      if (h.cancelled) {
+        var doneMark = document.createElement('div');
+        doneMark.className = 'row-done';
+        doneMark.textContent = '取消済み';
+        row.appendChild(doneMark);
+      } else {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'row-cancel';
+        b.textContent = '取り消す';
+        b.addEventListener('click', function () { askCancel(h); });
+        row.appendChild(b);
+      }
+      el.historyList.appendChild(row);
+    });
+  }
+
+  function askCancel(h) {
+    state.confirming = h;
+    el.confirmText.textContent = K.fill(state.data.texts.LIFF_CONFIRM, { item: h.item, amount: K.yen(h.amount) });
+    el.confirm.hidden = false;
+    say(state.data.texts.LIFF_CONFIRM_BUBBLE);
+  }
+
+  function cancelNo() {
+    state.confirming = null;
+    el.confirm.hidden = true;
+    say(state.data.texts.LIFF_HISTORY);
+  }
+
+  function cancelYes() {
+    var h = state.confirming;
+    if (!h || el.confirmYes.getAttribute('aria-busy') === 'true') return;
+    busy(el.confirmYes, true);
+    call({ action: 'liff_cancel', id: h.id })
+      .then(function (r) {
+        busy(el.confirmYes, false);
+        state.confirming = null;
+        el.confirm.hidden = true;
+        if (r && (r.ok || r.error === 'already')) {
+          h.cancelled = true;
+          if (state.last && state.last.id === h.id) state.last = null;   // 今の記録だったら、完了の画面には戻さない
+          renderHistory();
+          say(r.message);
+          return;
+        }
+        say((r && r.message) || state.data.texts.LIFF_FAILED, true);
+      })
+      .catch(function () { busy(el.confirmYes, false); say(state.data.texts.LIFF_FAILED, true); });
+  }
+
+  // ---- はじめ ----
   function start(data) {
     state.data = data;
-    var t = data.texts;
-    el.record.textContent = t.LIFF_RECORD_BUTTON;
-    el.again.textContent = t.LIFF_AGAIN_BUTTON;
-    el.close.textContent = t.LIFF_CLOSE_BUTTON;
-    el.name.placeholder = t.LIFF_ITEM_PLACEHOLDER;
+    el.name.placeholder = data.texts.LIFF_ITEM_PLACEHOLDER;
     el.close.hidden = !liff.isInClient();   // LINE の外のブラウザでは閉じられないので出さない
     renderItems(data.items);
     el.keys.addEventListener('click', function (e) {
@@ -164,14 +336,20 @@
       if (b) pressKey(b.dataset.key);
     });
     el.record.addEventListener('click', record);
-    el.again.addEventListener('click', reset);
+    el.again.addEventListener('click', function () { state.last = null; reset(); });
+    el.undo.addEventListener('click', undoLast);
     el.close.addEventListener('click', function () { liff.closeWindow(); });
-    el.input.hidden = false;
-    say(t.LIFF_OPEN);
+    el.historyBtn.addEventListener('click', function () {
+      if (state.mode === 'history') closeHistory(); else openHistory();
+    });
+    el.confirmNo.addEventListener('click', cancelNo);
+    el.confirmYes.addEventListener('click', cancelYes);
+    el.historyBtn.hidden = false;
+    show('input');
+    say(data.texts.LIFF_OPEN);
     update();
   }
 
-  // ---- はじめ ----
   if (!config.liffId || !config.gasUrl || !window.liff) {
     say(EARLY.NO_CONFIG, true);
     return;
