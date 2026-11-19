@@ -1,0 +1,192 @@
+/* 予定カレンダーの見た目（?view=calendar のときだけ）。正本は line_cash_bot/design/calendar_design.dc.html（オーロラ版）。
+   金の二重枠・枠を回る光・押したときの光（.k）・確認の欄（.confirm）・ボタン（.gold・.ghost・.pill）は style.css を共用する。
+   ここに書くものは、すべて .cal・.cal-… のクラスか html[data-view="calendar"] の下だけに効く（テンキーの見た目は変えない） */
+
+/* ---- カレンダーのときはテンキーの部分と、テンキーの背景（グレー・明暗の breathe）を出さない ---- */
+html[data-view="calendar"] { background: #040509; }
+html[data-view="calendar"] .app,
+html[data-view="calendar"] .bg,
+html[data-view="calendar"] .breathe { display: none !important; }
+
+/* ---- 背景：濃い紺の夜空とオーロラ（3本の光の帯）。下に向かって暗くする重ね ---- */
+.cal-sky {
+  position: fixed; inset: 0; z-index: -3;
+  background: linear-gradient(180deg, #0a1020 0%, #070b16 45%, #040509 100%);
+}
+.cal-aurora {
+  position: fixed; inset: -60px; z-index: -2; pointer-events: none;
+  filter: blur(38px); opacity: 0.85; overflow: hidden;
+}
+.cal-aurora .au { position: absolute; border-radius: 50%; }
+.cal-aurora .au1 {   /* 緑 → 水色 */
+  left: -10%; top: 2%; width: 120%; height: 150px; transform: rotate(-12deg);
+  background: linear-gradient(90deg, rgba(64, 224, 160, 0) 0%, rgba(64, 224, 160, 0.75) 30%, rgba(46, 196, 200, 0.65) 60%, rgba(46, 196, 200, 0) 100%);
+  animation: cal-au1 18s ease-in-out infinite;
+}
+.cal-aurora .au2 {   /* 紫 → ピンク */
+  left: 5%; top: 16%; width: 110%; height: 130px; transform: rotate(8deg);
+  background: linear-gradient(90deg, rgba(140, 92, 220, 0) 0%, rgba(140, 92, 220, 0.6) 40%, rgba(214, 110, 190, 0.45) 75%, rgba(214, 110, 190, 0) 100%);
+  animation: cal-au2 24s ease-in-out infinite;
+}
+.cal-aurora .au3 {   /* 水色 */
+  left: -20%; top: 30%; width: 90%; height: 110px; transform: rotate(-20deg);
+  background: linear-gradient(90deg, rgba(46, 196, 200, 0) 0%, rgba(46, 196, 200, 0.4) 50%, rgba(64, 224, 160, 0) 100%);
+  animation: cal-au3 30s ease-in-out infinite;
+}
+.cal-fade {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(4, 5, 9, 0) 0%, rgba(4, 5, 9, 0.35) 40%, rgba(4, 5, 9, 0.85) 70%, #040509 100%);
+}
+@keyframes cal-au1 { 0%, 100% { transform: translateX(-8%) rotate(-12deg) scaleY(1); } 50% { transform: translateX(8%) rotate(-6deg) scaleY(1.25); } }
+@keyframes cal-au2 { 0%, 100% { transform: translateX(6%) rotate(8deg); opacity: 0.9; } 50% { transform: translateX(-10%) rotate(14deg); opacity: 0.5; } }
+@keyframes cal-au3 { 0%, 100% { transform: translateX(0) rotate(-20deg); opacity: 0.5; } 50% { transform: translateX(20%) rotate(-12deg); opacity: 1; } }
+
+/* ---- 全体 ---- */
+.cal {
+  position: relative; max-width: 480px; margin: 0 auto;
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  color: var(--text);
+}
+.cal .head { padding-top: 24px; }
+.cal .pill { font-weight: 700; letter-spacing: 2px; padding: 0 14px; }
+
+/* 女の子（横いっぱい×高さ110px）とセリフ */
+.cal-stage { margin: 12px var(--side) 0; }
+.cal .photo-in.cal-photo { height: 110px; }
+.cal-line {
+  margin: 8px 0 0; font-size: 13px; line-height: 1.6; text-align: center;
+  white-space: pre-line; min-height: 3.2em;
+}
+.cal-line.error { color: #f0b8a8; }
+
+.cal-pane { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 12px var(--side) 26px; }
+
+/* ---- タブ ---- */
+.cal-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid rgba(201, 169, 97, 0.45); }
+.cal-tab {
+  min-height: 36px; border: none; padding: 0; background: transparent; color: var(--text-sub);
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; white-space: nowrap;
+}
+.cal-tab + .cal-tab { border-left: 1px solid rgba(201, 169, 97, 0.3); }
+.cal-tab[aria-selected="true"] {
+  background: linear-gradient(180deg, #38383c, #222225); color: var(--gold-light);
+  box-shadow: inset 0 -2px 0 var(--gold);
+}
+
+/* ---- 月の表 ---- */
+.cal-month { display: flex; flex-direction: column; gap: 6px; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; }
+.cal-arrow {
+  width: 40px; height: 40px; border-radius: 14px; border: 1px solid rgba(201, 169, 97, 0.35);
+  background: transparent; color: var(--gold-mid); display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.cal-title { display: flex; align-items: baseline; gap: 8px; }
+.cal-title-num { font-family: var(--num); font-weight: 700; font-size: 26px; color: var(--gold-light); }
+.cal-title-name { font-family: var(--num); font-style: italic; font-size: 13px; color: var(--gold); letter-spacing: 2px; }
+.cal-dow {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center;
+  font-family: var(--num); font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--text-dim);
+  border-bottom: 1px solid rgba(201, 169, 97, 0.35); padding-bottom: 4px;
+}
+.cal-dow .sun { color: #d9a3a0; }
+.cal-dow .sat { color: #9db4d6; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.cal-cell {
+  min-height: 40px; border-radius: 12px; padding: 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  background: transparent; border: 1px solid transparent;
+}
+.cal-cell.blank { visibility: hidden; pointer-events: none; }
+.cal-cell.today { border-color: rgba(201, 169, 97, 0.45); }
+.cal-cell.sel { background: linear-gradient(180deg, #38383c, #222225); border-color: var(--gold); }
+.cal-num { font-family: var(--num); font-size: 15px; font-weight: 700; color: var(--text); line-height: 1; }
+.cal-cell.sun .cal-num { color: #d9a3a0; }
+.cal-cell.sat .cal-num { color: #9db4d6; }
+.cal-cell.sel .cal-num { color: var(--gold-light); }
+.cal-dots { display: flex; gap: 3px; height: 6px; justify-content: center; }
+.cal-dot { width: 6px; height: 6px; border-radius: 3px; }
+
+/* だれの色（点・凡例・タグ） */
+.who-wife { background: #e2a9b4; }
+.who-husband { background: #9fc9b0; }
+.who-family { background: #e6cf8e; }
+
+.cal-legend { display: flex; gap: 14px; justify-content: center; font-size: 11px; color: var(--text-dim); }
+.cal-legend span { display: flex; align-items: center; gap: 5px; }
+.cal-legend i { width: 7px; height: 7px; border-radius: 4px; display: inline-block; }
+
+/* ---- 予定の一覧 ---- */
+.cal-list { display: flex; flex-direction: column; }
+.cal-list-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  border-bottom: 1px solid var(--gold); padding-bottom: 5px;
+}
+.cal-list-title { font-size: 14px; font-weight: 700; letter-spacing: 3px; color: var(--gold-light); }
+.cal-list-sub { font-family: var(--num); font-style: italic; font-size: 12px; color: var(--gold); }
+.cal-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 2px; width: 100%; text-align: left;
+  border: none; border-bottom: 1px solid rgba(201, 169, 97, 0.2); background: transparent; color: var(--text);
+}
+.cal-item:active { background: rgba(201, 169, 97, 0.08); }
+.cal-item-when { display: flex; flex-direction: column; align-items: center; width: 44px; flex-shrink: 0; }
+.cal-item-date { font-family: var(--num); font-weight: 700; font-size: 15px; color: var(--gold-light); }
+.cal-item-time { font-family: var(--num); font-size: 11px; color: var(--text-dim); }
+.cal-tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 10px; color: #141416; flex-shrink: 0; }
+.cal-item-title { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.cal-empty { padding: 14px 2px; font-size: 13px; color: var(--text-dim); }
+.cal .confirm-text { white-space: pre-line; }   /* 「11/20（金） 歯医者」と「この予定を消しますか？」を2行に */
+
+/* ---- 予定を書く ---- */
+.cal-form { gap: 12px; }
+.cal-field { display: flex; flex-direction: column; gap: 6px; }
+.cal-label { font-size: 11px; letter-spacing: 2px; color: var(--text-dim); }
+.cal-row-head { display: flex; align-items: baseline; justify-content: space-between; }
+.cal-date-row { border-bottom: 1px solid rgba(201, 169, 97, 0.5); padding-bottom: 6px; }
+.cal-form-date { font-family: var(--num); font-weight: 700; font-size: 22px; color: var(--gold-light); }
+.cal-time-text { font-family: var(--num); font-weight: 700; font-size: 20px; color: var(--gold-light); }
+.cal-input {
+  height: 46px; border-radius: 14px; border: 1px solid rgba(201, 169, 97, 0.45); background: rgba(5, 5, 6, 0.4);
+  color: var(--gold-light); font-family: inherit; font-size: 16px; padding: 0 14px; width: 100%;
+}
+.cal-input::placeholder { color: var(--text-dim); }
+.cal-input:focus { outline: none; border-color: var(--gold); }
+.cal-hours { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.cal-mins { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.cal-whos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.cal-chip {
+  min-height: 34px; border-radius: 10px; padding: 0; min-width: 0;
+  font-family: var(--num); font-size: 13px; font-weight: 700;
+  background: rgba(5, 5, 6, 0.35); color: var(--text); border: 1px solid rgba(201, 169, 97, 0.3);
+}
+.cal-whos .cal-chip { font-family: var(--jp); }
+.cal-chip[aria-pressed="true"],
+.cal-allday[aria-pressed="true"] {
+  background: linear-gradient(180deg, #e6cf8e, #a8853f); color: var(--ink); border: 1px solid var(--gold-light);
+}
+.cal-allday {
+  min-height: 34px; border-radius: 10px; font-size: 12px; font-weight: 700; letter-spacing: 2px;
+  background: transparent; color: var(--text-sub); border: 1px solid rgba(201, 169, 97, 0.3);
+}
+.cal-save {
+  min-height: 52px; border-radius: 14px; font-size: 16px; font-weight: 700; letter-spacing: 6px;
+  background: transparent; color: rgba(205, 191, 154, 0.45); border: 1px solid rgba(201, 169, 97, 0.25);
+}
+.cal-save.ready {
+  background: linear-gradient(180deg, #e6cf8e 0%, #c9a961 45%, #a8853f 100%); color: var(--ink); border: 1px solid var(--gold-light);
+}
+.cal-spacer { flex: 1; }
+
+/* 動きを減らす設定ならオーロラも止める（動画は calendar.js が止めて静止画にする） */
+@media (prefers-reduced-motion: reduce) {
+  .cal-aurora .au { animation: none !important; }
+}
+
+/* 幅の狭いスマホ（360px 前後） */
+@media (max-width: 370px) {
+  .cal-tab { letter-spacing: 0; font-size: 10.5px; }
+  .cal-legend { gap: 10px; }
+  .cal-chip { font-size: 12px; }
+  .cal .pill { letter-spacing: 1px; padding: 0 10px; }
+}

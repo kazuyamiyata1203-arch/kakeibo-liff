@@ -6,11 +6,14 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#2a2a2d">
   <title>現金出納帳</title>
+  <!-- どちらの画面か（?view=calendar なら予定カレンダー）を、描く前に決める -->
+  <script src="view.js"></script>
   <!-- フォント（Google Fonts。無料）：日本語は Zen Maru Gothic、数字・欧文は Quicksand -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Quicksand:wght@700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Quicksand:wght@500;700&display=swap">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="calendar.css">
 </head>
 <body>
   <!-- 背景と金の二重枠（画面に固定。押せない飾り） -->
@@ -96,11 +99,115 @@
     </section>
   </main>
 
+  <!-- ===== 予定カレンダー（?view=calendar のときだけ calendar.js が出す） ===== -->
+  <div class="cal-sky" aria-hidden="true" hidden></div>
+  <div class="cal-aurora" aria-hidden="true" hidden><div class="au au1"></div><div class="au au2"></div><div class="au au3"></div></div>
+  <div class="cal-fade" aria-hidden="true" hidden></div>
+
+  <main class="cal" id="cal" hidden>
+    <header class="head">
+      <div class="titles">
+        <div class="title-fr">Agenda</div>
+        <div class="title-jp">予定帳</div>
+      </div>
+      <button type="button" class="pill k" id="calAdd" hidden>＋ 予定を書く</button>
+    </header>
+
+    <!-- 女の子（動画。止まるときは静止画。ファイル名は calendar.js の CAL_MEDIA）とセリフ -->
+    <section class="cal-stage">
+      <div class="photo">
+        <div class="photo-in cal-photo">
+          <video id="calVideo" muted loop playsinline preload="auto" aria-hidden="true"></video>
+          <img id="calStill" alt="" hidden>
+        </div>
+      </div>
+      <p class="cal-line" id="calBubble" role="status" aria-live="polite">…</p>
+    </section>
+
+    <!-- カレンダーと一覧 -->
+    <section class="cal-pane" id="calMain" hidden>
+      <div class="cal-tabs" id="calTabs" role="tablist">
+        <button type="button" class="cal-tab k" role="tab" data-tab="cal">カレンダー</button>
+        <button type="button" class="cal-tab k" role="tab" data-tab="tomorrow">明日</button>
+        <button type="button" class="cal-tab k" role="tab" data-tab="week">1週間</button>
+        <button type="button" class="cal-tab k" role="tab" data-tab="month">1か月</button>
+        <button type="button" class="cal-tab k" role="tab" data-tab="later">その先</button>
+      </div>
+
+      <div class="cal-month" id="calMonth">
+        <div class="cal-nav">
+          <button type="button" class="cal-arrow k" id="calPrev" aria-label="前の月">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <div class="cal-title">
+            <div class="cal-title-num" id="calMonthNum"></div>
+            <div class="cal-title-name" id="calMonthName"></div>
+          </div>
+          <button type="button" class="cal-arrow k" id="calNext" aria-label="次の月">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div class="cal-dow" aria-hidden="true">
+          <div class="sun">SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div class="sat">SAT</div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-legend">
+          <span><i class="who-wife"></i>奥様</span><span><i class="who-husband"></i>旦那様</span><span><i class="who-family"></i>家族</span>
+        </div>
+      </div>
+
+      <div class="cal-list">
+        <div class="cal-list-head">
+          <div class="cal-list-title" id="calListTitle"></div>
+          <div class="cal-list-sub" id="calListSub"></div>
+        </div>
+        <div id="calItems"></div>
+      </div>
+
+      <div class="confirm" id="calConfirm" hidden>
+        <div class="confirm-text" id="calConfirmText"></div>
+        <div class="confirm-buttons">
+          <button type="button" class="ghost" id="calConfirmNo">やめる</button>
+          <button type="button" class="gold" id="calConfirmYes">消す</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 予定を書く -->
+    <section class="cal-pane cal-form" id="calForm" hidden>
+      <div class="cal-row-head cal-date-row">
+        <div class="cal-label">日付</div>
+        <div class="cal-form-date" id="calFormDate"></div>
+      </div>
+      <div class="cal-field">
+        <label class="cal-label" for="calTitle">予定の名前</label>
+        <input class="cal-input" id="calTitle" type="text" maxlength="50" autocomplete="off">
+      </div>
+      <div class="cal-field">
+        <div class="cal-row-head">
+          <div class="cal-label">時間</div>
+          <div class="cal-time-text" id="calTimeText"></div>
+        </div>
+        <div class="cal-hours" id="calHours"></div>
+        <div class="cal-mins" id="calMins"></div>
+        <button type="button" class="cal-allday k" id="calAllDay">時間なし（終日）</button>
+      </div>
+      <div class="cal-field">
+        <div class="cal-label">だれの予定</div>
+        <div class="cal-whos" id="calWhos"></div>
+      </div>
+      <div class="cal-spacer"></div>
+      <button type="button" class="cal-save k" id="calSave" aria-disabled="true">書き留める</button>
+      <button type="button" class="link" id="calBack">カレンダーに戻る</button>
+    </section>
+  </main>
+
   <!-- LIFF SDK（LINE 公式。最新の 2.x） -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <!-- LIFF ID と記録の送り先（GAS の Webアプリの URL）。config.example.js をまねて作る -->
   <script src="config.js"></script>
   <script src="keypad.js"></script>
   <script src="app.js"></script>
+  <script src="calendar.js"></script>
 </body>
 </html>

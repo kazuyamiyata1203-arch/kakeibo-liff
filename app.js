@@ -7,6 +7,7 @@
  */
 (function () {
   'use strict';
+  if (window.KAKEIBO_VIEW === 'calendar') return;   // ?view=calendar のときは予定カレンダー（calendar.js）だけが動く
   var K = window.Keypad;
   var config = window.KAKEIBO_LIFF_CONFIG || {};
   // GAS とつながる前に出す文（それ以外のセリフはすべて GAS の messages.gs から受け取る）
