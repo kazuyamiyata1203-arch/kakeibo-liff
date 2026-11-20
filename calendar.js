@@ -9,7 +9,8 @@
   'use strict';
 
   // 女の子の動画と、止まったときの静止画。動画を差し替えるときは、ここだけを直す
-  var CAL_MEDIA = { video: 'diary_loop.mp4', poster: 'card_top.jpg' };
+  // 10c：カレンダー用のループ動画（机でカレンダーに印を付ける）と、止まったとき用の静止画（動画の最初のコマ）
+  var CAL_MEDIA = { video: 'calendar_loop.mp4', poster: 'calendar_poster.jpg' };
   var WHO_CLASS = { '奥様': 'who-wife', '旦那様': 'who-husband', '家族': 'who-family' };
   var WHO_ORDER = ['奥様', '旦那様', '家族'];
   var MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];

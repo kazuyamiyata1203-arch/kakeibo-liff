@@ -178,6 +178,10 @@ html[data-view="calendar"] .breathe { display: none !important; }
 }
 .cal-spacer { flex: 1; }
 
+/* カレンダーの女の子の枠（10c）：顔・羽ペンを持つ手・カレンダー・インク瓶が収まる位置（帽子の上のロウソクは切れてよい）。
+   テンキーの枠（style.css の 50% 55%）は変えない */
+.cal .photo-in.cal-photo video, .cal .photo-in.cal-photo img { object-fit: cover; object-position: 50% 76%; }
+
 /* 動きを減らす設定ならオーロラも止める（動画は calendar.js が止めて静止画にする） */
 @media (prefers-reduced-motion: reduce) {
   .cal-aurora .au { animation: none !important; }
