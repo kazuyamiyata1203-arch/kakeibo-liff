@@ -52,9 +52,9 @@ html[data-view="calendar"] .breathe { display: none !important; }
 .cal .head { padding-top: 24px; }
 .cal .pill { font-weight: 700; letter-spacing: 2px; padding: 0 14px; }
 
-/* 女の子（横いっぱい×高さ110px）とセリフ */
+/* 女の子（横いっぱい×高さ160px。10d：テンキーと同じ高さ）とセリフ */
 .cal-stage { margin: 12px var(--side) 0; }
-.cal .photo-in.cal-photo { height: 110px; }
+.cal .photo-in.cal-photo { height: 160px; }
 .cal-line {
   margin: 8px 0 0; font-size: 13px; line-height: 1.6; text-align: center;
   white-space: pre-line; min-height: 3.2em;
